@@ -5,11 +5,13 @@ import { join } from 'path';
 import { ConfigModule } from './config/config.module';
 import { ConfigService } from './config/config.service';
 import { AuthModule } from './auth/auth.module';
+import { OAuthModule } from './oauth/oauth.module';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
+    OAuthModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
