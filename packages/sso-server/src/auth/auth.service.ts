@@ -73,4 +73,43 @@ export class AuthService {
 
     return code;
   }
+
+  async loginViaWallet(walletAddress: string, ipAddress: string): Promise<string> {
+    const normalizedAddress = walletAddress.toLowerCase();
+
+    let identity = await this.identityRepo.findOne({
+      where: { provider: 'wallet', providerUserId: normalizedAddress },
+      relations: ['user'],
+    });
+
+    if (!identity) {
+      const user = await this.userRepo.save(this.userRepo.create({}));
+      identity = await this.identityRepo.save(
+        this.identityRepo.create({
+          userId: user.id,
+          provider: 'wallet',
+          providerUserId: normalizedAddress,
+          providerData: { walletAddress: normalizedAddress },
+        }),
+      );
+      identity.user = user;
+    }
+
+    await this.auditRepo.save(
+      this.auditRepo.create({
+        userId: identity.user.id,
+        action: 'login.wallet',
+        ipAddress,
+        details: { provider: 'wallet', walletAddress: normalizedAddress },
+      }),
+    );
+
+    const code = uuid();
+    await this.redis.setEx(`auth_code:${code}`, 300, JSON.stringify({
+      userId: identity.user.id,
+      scopes: ['openid', 'profile'],
+    }));
+
+    return code;
+  }
 }

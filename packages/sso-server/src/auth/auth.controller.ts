@@ -1,22 +1,27 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Req, Res, Inject, UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { createClient } from 'redis';
 import { AuthService } from './auth.service';
 import { GitHubStrategy } from './strategies/github.strategy';
+import { WalletStrategy } from './strategies/wallet.strategy';
 import { ConfigService } from '../config/config.service';
 
 @Controller()
 export class AuthController {
   private readonly github: GitHubStrategy;
+  private readonly wallet: WalletStrategy;
 
   constructor(
     private authService: AuthService,
     private config: ConfigService,
+    @Inject('REDIS') private redis: ReturnType<typeof createClient>,
   ) {
     this.github = new GitHubStrategy(
       this.config.githubClientId,
       this.config.githubClientSecret,
       `${this.config.ssoBaseUrl}/login/github/callback`,
     );
+    this.wallet = new WalletStrategy(this.redis);
   }
 
   @Get('/login')
@@ -43,5 +48,28 @@ export class AuthController {
       req.ip || '127.0.0.1',
     );
     res.json({ code: authCode });
+  }
+
+  @Post('/login/wallet/nonce')
+  async getWalletNonce(@Body('wallet_address') walletAddress: string) {
+    const nonce = await this.wallet.generateNonce(walletAddress);
+    return { nonce };
+  }
+
+  @Post('/login/wallet/verify')
+  async loginWallet(
+    @Body('nonce') nonce: string,
+    @Body('signature') signature: string,
+    @Body('wallet_address') walletAddress: string,
+    @Req() req: Request,
+  ) {
+    const valid = await this.wallet.verifySignature(nonce, signature, walletAddress);
+    if (!valid) throw new UnauthorizedException('Invalid signature');
+
+    const code = await this.authService.loginViaWallet(
+      walletAddress,
+      req.ip || '127.0.0.1',
+    );
+    return { code };
   }
 }
