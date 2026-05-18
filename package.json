@@ -1,0 +1,7 @@
+{
+  "name": "sso-hub",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
