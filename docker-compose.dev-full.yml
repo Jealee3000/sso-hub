@@ -17,29 +17,49 @@ services:
       - "6379:6379"
 
   sso-hub:
-    build: ./packages/sso-server
+    build:
+      context: .
+      dockerfile: ./packages/sso-server/Dockerfile
     ports:
       - "3000:3000"
     env_file: ./packages/sso-server/.env
+    environment:
+      DATABASE_URL: postgresql://sso:sso_password@postgres:5432/sso_hub
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
+      - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
     depends_on:
       - postgres
       - redis
 
   bff-a:
-    build: ./packages/bff-a
+    build:
+      context: .
+      dockerfile: ./packages/bff-a/Dockerfile
     ports:
       - "3001:3001"
     env_file: ./packages/bff-a/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+      SSO_URL: http://sso-hub:3000
     depends_on:
       - redis
+      - sso-hub
 
   bff-b:
-    build: ./packages/bff-b
+    build:
+      context: .
+      dockerfile: ./packages/bff-b/Dockerfile
     ports:
       - "3002:3002"
     env_file: ./packages/bff-b/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+      SSO_URL: http://sso-hub:3000
     depends_on:
       - redis
+      - sso-hub
 
 volumes:
   pgdata_devfull:

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class ConfigService {
@@ -11,11 +13,19 @@ export class ConfigService {
   }
 
   get jwtPrivateKey(): string {
-    return process.env.JWT_PRIVATE_KEY!.replace(/\\n/g, '\n');
+    if (process.env.JWT_PRIVATE_KEY) {
+      return process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n');
+    }
+    const keyPath = process.env.JWT_PRIVATE_KEY_PATH || join(process.cwd(), 'jwt-private.pem');
+    return readFileSync(keyPath, 'utf8');
   }
 
   get jwtPublicKey(): string {
-    return process.env.JWT_PUBLIC_KEY!.replace(/\\n/g, '\n');
+    if (process.env.JWT_PUBLIC_KEY) {
+      return process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n');
+    }
+    const keyPath = process.env.JWT_PUBLIC_KEY_PATH || join(process.cwd(), 'jwt-public.pem');
+    return readFileSync(keyPath, 'utf8');
   }
 
   get githubClientId(): string {
