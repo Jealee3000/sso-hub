@@ -1,0 +1,88 @@
+version: "3.8"
+services:
+  traefik:
+    image: traefik:3.0
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    networks:
+      - public
+
+  sso-hub:
+    build: ./packages/sso-server
+    env_file: ./packages/sso-server/.env.production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sso.rule=Host(`${SSO_DOMAIN}`)"
+      - "traefik.http.routers.sso.entrypoints=websecure"
+      - "traefik.http.routers.sso.tls.certresolver=letsencrypt"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - public
+      - internal
+
+  bff-a:
+    build: ./packages/bff-a
+    env_file: ./packages/bff-a/.env.production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bffa.rule=Host(`${BFF_A_DOMAIN}`)"
+      - "traefik.http.routers.bffa.entrypoints=websecure"
+      - "traefik.http.routers.bffa.tls.certresolver=letsencrypt"
+    depends_on:
+      - redis
+    networks:
+      - public
+      - internal
+
+  bff-b:
+    build: ./packages/bff-b
+    env_file: ./packages/bff-b/.env.production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bffb.rule=Host(`${BFF_B_DOMAIN}`)"
+      - "traefik.http.routers.bffb.entrypoints=websecure"
+      - "traefik.http.routers.bffb.tls.certresolver=letsencrypt"
+    depends_on:
+      - redis
+    networks:
+      - public
+      - internal
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: sso_hub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - internal
+
+networks:
+  public:
+  internal:
+    internal: true
+
+volumes:
+  pgdata:
+  letsencrypt:
