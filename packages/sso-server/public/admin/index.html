@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSO Hub - 管理后台</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --primary: #6366f1; --text: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:system-ui, sans-serif; padding:24px 32px; max-width:1000px; margin:0 auto; }
+  h1 { font-size:24px; margin-bottom:24px; }
+  .tab-bar { display:flex; gap:8px; margin-bottom:24px; border-bottom:1px solid #334155; padding-bottom:0; }
+  .tab { padding:10px 20px; border-radius:8px 8px 0 0; cursor:pointer; background:transparent; border:none; color:#94a3b8; font-size:14px; }
+  .tab.active { background:var(--card); color:var(--text); }
+  table { width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; }
+  th, td { padding:12px 16px; text-align:left; border-bottom:1px solid #334155; font-size:13px; }
+  th { color:#94a3b8; font-weight:500; }
+  .btn-sm { padding:6px 12px; border-radius:6px; border:none; cursor:pointer; font-size:12px; }
+  .btn-danger { background:var(--danger); color:#fff; }
+  .btn-primary { background:var(--primary); color:#fff; }
+  .status { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .status-on { background:var(--success); }
+  .status-off { background:#64748b; }
+</style>
+</head>
+<body>
+<h1>SSO Hub 管理后台</h1>
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('clients')">应用管理</button>
+  <button class="tab" onclick="switchTab('users')">用户管理</button>
+  <button class="tab" onclick="switchTab('audit')">审计日志</button>
+</div>
+<div id="content">加载中...</div>
+<script>
+  async function loadClients() {
+    const res = await fetch('/admin/clients');
+    const clients = await res.json();
+    document.getElementById('content').innerHTML = `
+      <div style="margin-bottom:16px;"><button class="btn-sm btn-primary" onclick="createClient()">+ 新建应用</button></div>
+      <table>
+        <tr><th>名称</th><th>Client ID</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+        ${clients.map(c => `<tr>
+          <td>${c.name}</td>
+          <td><code style="font-size:11px;color:#94a3b8;">${c.clientId}</code></td>
+          <td><span class="status ${c.isActive?'status-on':'status-off'}"></span>${c.isActive?'启用':'停用'}</td>
+          <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+          <td><button class="btn-sm btn-danger" onclick="delClient('${c.id}')">停用</button></td>
+        </tr>`).join('')}
+      </table>`;
+  }
+
+  async function loadUsers() {
+    const res = await fetch('/admin/users');
+    const users = await res.json();
+    document.getElementById('content').innerHTML = `
+      <table>
+        <tr><th>ID</th><th>邮箱</th><th>昵称</th><th>管理员</th><th>创建时间</th><th>操作</th></tr>
+        ${users.map(u => `<tr>
+          <td style="font-size:11px;color:#64748b;">${u.id.slice(0,8)}...</td>
+          <td>${u.email||'-'}</td>
+          <td>${u.displayName||'-'}</td>
+          <td>${u.isAdmin?'是':'否'}</td>
+          <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+          <td>
+            <button class="btn-sm btn-primary" onclick="toggleAdmin('${u.id}')">切换管理员</button>
+            <button class="btn-sm btn-danger" onclick="delUser('${u.id}')">禁用</button>
+          </td>
+        </tr>`).join('')}
+      </table>`;
+  }
+
+  async function loadAudit() {
+    const res = await fetch('/admin/audit-logs');
+    const logs = await res.json();
+    document.getElementById('content').innerHTML = `
+      <table>
+        <tr><th>时间</th><th>用户</th><th>操作</th><th>IP</th></tr>
+        ${logs.map(l => `<tr>
+          <td>${new Date(l.createdAt).toLocaleString()}</td>
+          <td>${l.userId?.slice(0,8)||'-'}</td>
+          <td>${l.action}</td>
+          <td>${l.ipAddress}</td>
+        </tr>`).join('')}
+      </table>`;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    if (tab === 'clients') loadClients();
+    else if (tab === 'users') loadUsers();
+    else loadAudit();
+  }
+
+  async function createClient() {
+    const name = prompt('应用名称：');
+    if (!name) return;
+    const uris = prompt('回调地址（逗号分隔）：');
+    const res = await fetch('/admin/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, redirectUris: uris.split(',').map(s=>s.trim()) }),
+    });
+    const data = await res.json();
+    alert('创建成功!\nClient ID: ' + data.clientId + '\nClient Secret: ' + data.clientSecret + '\n\n请妥善保管 Secret，仅显示一次。');
+    loadClients();
+  }
+
+  async function delClient(id) { await fetch('/admin/clients/'+id, {method:'DELETE'}); loadClients(); }
+  async function toggleAdmin(id) { await fetch('/admin/users/'+id+'/toggle-admin', {method:'POST'}); loadUsers(); }
+  async function delUser(id) { await fetch('/admin/users/'+id, {method:'DELETE'}); loadUsers(); }
+
+  loadClients();
+</script>
+</body>
+</html>
