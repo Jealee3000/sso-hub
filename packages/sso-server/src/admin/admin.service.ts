@@ -1,0 +1,57 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { v4 as uuid } from 'uuid';
+import { OAuthClient } from '../entities/oauth-client.entity';
+import { User } from '../entities/user.entity';
+import { AuditLog } from '../entities/audit-log.entity';
+
+@Injectable()
+export class AdminService {
+  constructor(
+    @InjectRepository(OAuthClient) private clientRepo: Repository<OAuthClient>,
+    @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(AuditLog) private auditRepo: Repository<AuditLog>,
+  ) {}
+
+  async createClient(dto: { name: string; redirectUris: string[] }) {
+    const clientId = uuid();
+    const secret = uuid();
+    const secretHash = await bcrypt.hash(secret, 10);
+    const client = await this.clientRepo.save(this.clientRepo.create({
+      name: dto.name, clientId, clientSecret: secretHash, redirectUris: dto.redirectUris,
+    }));
+    return { id: client.id, name: client.name, clientId, clientSecret: secret };
+  }
+
+  async listClients() {
+    return this.clientRepo.find({ select: ['id', 'name', 'clientId', 'isActive', 'createdAt'] });
+  }
+
+  async deleteClient(id: string) {
+    await this.clientRepo.update(id, { isActive: false });
+  }
+
+  async listUsers() {
+    return this.userRepo.find({ select: ['id', 'email', 'displayName', 'isAdmin', 'createdAt'] });
+  }
+
+  async toggleAdmin(userId: string) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException();
+    user.isAdmin = !user.isAdmin;
+    return this.userRepo.save(user);
+  }
+
+  async disableUser(userId: string) {
+    await this.userRepo.delete(userId);
+  }
+
+  async getAuditLogs(filter: { userId?: string; action?: string; limit?: number }) {
+    return this.auditRepo.find({
+      where: { ...(filter.userId && { userId: filter.userId }), ...(filter.action && { action: filter.action }) },
+      order: { createdAt: 'DESC' }, take: filter.limit || 100,
+    });
+  }
+}
