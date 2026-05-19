@@ -10,4 +10,5 @@ export const config = {
   redisDb: parseInt(process.env.REDIS_DB || '0', 10),
   callbackPath: '/callback',
   sessionSecret: process.env.SESSION_SECRET!,
+  cookieName: process.env.COOKIE_NAME || 'sessionId',
 };

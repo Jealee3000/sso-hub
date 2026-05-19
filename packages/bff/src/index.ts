@@ -19,6 +19,7 @@ async function main() {
   await app.register(fastifySession, {
     store: new RedisStore({ client: redis as any }),
     secret: config.sessionSecret,
+    cookieName: config.cookieName,
     cookie: { secure: false, httpOnly: true, sameSite: 'lax' as const, maxAge: 24 * 60 * 60 * 1000 },
   });
 
