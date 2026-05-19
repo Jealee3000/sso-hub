@@ -68,11 +68,12 @@ async function main() {
     return { authenticated: true, userId: session.userId, name: session.userName, avatar: session.userAvatar };
   });
 
-  // Logout
+  // Logout → 清 BFF session → 跳 SSO 清 sso_sid → 跳回 BFF 首页
   app.get('/logout', async (req, reply) => {
     const session = (req as any).session;
     await session.destroy();
-    reply.redirect('/');
+    const bffUrl = `http://localhost:${config.port}`;
+    reply.redirect(`${config.ssoExternalUrl}/logout?redirect=${encodeURIComponent(bffUrl + '/')}`);
   });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
