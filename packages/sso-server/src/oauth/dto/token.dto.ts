@@ -1,14 +1,20 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class TokenDto {
   @IsString()
   grant_type!: string;
 
   @IsString()
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
-  redirect_uri!: string;
+  @IsOptional()
+  redirect_uri?: string;
+
+  @IsString()
+  @IsOptional()
+  refresh_token?: string;
 
   @IsString()
   client_id!: string;

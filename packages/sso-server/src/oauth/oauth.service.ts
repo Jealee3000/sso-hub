@@ -88,10 +88,12 @@ export class OAuthService {
       }),
     );
 
+    // Redis 用 refreshValue 做 key，刷新时直接查找
     await this.redis.setEx(
-      `refresh_token:${saved.id}`,
+      `refresh_token:${refreshValue}`,
       7 * 24 * 3600,
       JSON.stringify({
+        id: saved.id,
         clientId: client.clientId,
         userId: user.id,
         scopes: parsed.scopes,
@@ -105,6 +107,57 @@ export class OAuthService {
       expires_in: 900,
       id_token: idToken,
       refresh_token: refreshValue,
+    };
+  }
+
+  async refreshTokenGrant(refreshToken: string, clientId: string, clientSecret: string) {
+    const client = await this.clientRepo.findOne({ where: { clientId } });
+    if (!client || !(await bcrypt.compare(clientSecret, client.clientSecret))) {
+      throw new UnauthorizedException('invalid_client');
+    }
+
+    const raw = await this.redis.get(`refresh_token:${refreshToken}`);
+    if (!raw) throw new UnauthorizedException('invalid_grant');
+
+    const data = JSON.parse(raw);
+    if (data.clientId !== clientId) throw new UnauthorizedException('invalid_grant');
+    if (new Date(data.expiresAt) < new Date()) throw new UnauthorizedException('invalid_grant');
+
+    // token rotation — 旧的作废
+    await this.redis.del(`refresh_token:${refreshToken}`);
+    await this.refreshTokenRepo.update(data.id, { revoked: true });
+
+    const user = await this.userRepo.findOne({ where: { id: data.userId } });
+    if (!user) throw new UnauthorizedException('invalid_grant');
+
+    const accessToken = this.jwt.signAccessToken({
+      sub: user.id, clientId: client.clientId, scopes: data.scopes,
+    });
+    const idToken = this.jwt.signIdToken({
+      sub: user.id, email: user.email, name: user.displayName,
+      avatarUrl: user.avatarUrl, aud: client.clientId,
+    });
+
+    const newRefreshValue = uuid();
+    const newRefreshHash = await bcrypt.hash(newRefreshValue, 10);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const saved = await this.refreshTokenRepo.save(this.refreshTokenRepo.create({
+      token: newRefreshHash, clientId: client.id, userId: user.id,
+      scopes: data.scopes, expiresAt,
+    }));
+
+    await this.redis.setEx(`refresh_token:${newRefreshValue}`, 7 * 24 * 3600, JSON.stringify({
+      id: saved.id, clientId: client.clientId, userId: user.id,
+      scopes: data.scopes, expiresAt: expiresAt.toISOString(),
+    }));
+
+    return {
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 900,
+      id_token: idToken,
+      refresh_token: newRefreshValue,
     };
   }
 }

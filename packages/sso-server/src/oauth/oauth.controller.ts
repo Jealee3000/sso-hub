@@ -51,11 +51,18 @@ export class OAuthController {
   @HttpCode(200)
   async postToken(@Body() body: TokenDto) {
     try {
+      if (body.grant_type === 'refresh_token') {
+        return await this.oauth.refreshTokenGrant(
+          body.refresh_token!,
+          body.client_id,
+          body.client_secret,
+        );
+      }
       return await this.oauth.exchangeCode(
-        body.code,
+        body.code!,
         body.client_id,
         body.client_secret,
-        body.redirect_uri,
+        body.redirect_uri!,
       );
     } catch (err) {
       console.error('Token exchange error:', err);
