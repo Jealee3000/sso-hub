@@ -1,13 +1,7 @@
 import { useState } from 'react';
 
-interface Toast {
-  message: string;
-  type: 'success' | 'error';
-}
-
 export default function Login() {
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<Toast | null>(null);
   const [walletAddr, setWalletAddr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,11 +9,6 @@ export default function Login() {
   const redirectUri = queryParams.get('redirect_uri') || '';
   const clientId = queryParams.get('client_id') || '';
   const state = queryParams.get('state') || '';
-
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  };
 
   const loginWithGithub = () => {
     const params = new URLSearchParams();
@@ -67,7 +56,7 @@ export default function Login() {
       if (clientId && redirectUri) {
         window.location.href = `${redirectUri}?code=${code}&state=${state}`;
       } else {
-        showToast('登录成功', 'success');
+        window.location.href = '/';
       }
     } catch (err: any) {
       setError(err.message || '登录失败');
@@ -127,12 +116,6 @@ export default function Login() {
           </div>
         )}
       </div>
-
-      {toast && (
-        <div style={{ ...styles.toast, borderColor: toast.type === 'success' ? 'var(--green)' : 'var(--red)' }}>
-          {toast.message}
-        </div>
-      )}
 
       <style>{`
         .btn-github { background: #24292e; }
