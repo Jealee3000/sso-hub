@@ -28,11 +28,28 @@ async function main() {
   });
 
   const callbackUrl = config.ssoExternalUrl + config.callbackPath;
-  const authGuard = buildAuthGuard(config.ssoExternalUrl, config.clientId, callbackUrl);
 
-  // Protected home page
-  app.get('/', { preHandler: authGuard }, async (req, reply) => {
+  // Home page — always serve, don't force redirect
+  app.get('/', async (req, reply) => {
     return reply.sendFile('index.html');
+  });
+
+  // SSO login entry — builds /authorize URL and redirects
+  app.get('/login', async (req, reply) => {
+    const crypto = require('crypto');
+    const state = crypto.randomUUID();
+    const session = (req as any).session;
+    session.state = state;
+    await session.save();
+
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: callbackUrl,
+      response_type: 'code',
+      scope: 'openid profile',
+      state,
+    });
+    reply.redirect(`${config.ssoExternalUrl}/authorize?${params}`);
   });
 
   // Callback from SSO
@@ -40,10 +57,13 @@ async function main() {
     await handleCallback(req, reply, config.ssoUrl, callbackUrl, config.clientId, config.clientSecret);
   });
 
-  // API: get current user info
-  app.get('/api/me', { preHandler: authGuard }, async (req, reply) => {
+  // API: get current user info (no redirect, just return status)
+  app.get('/api/me', async (req, reply) => {
     const session = (req as any).session;
-    return { userId: session.userId, name: session.userName, avatar: session.userAvatar };
+    if (!session?.userId) {
+      return { authenticated: false };
+    }
+    return { authenticated: true, userId: session.userId, name: session.userName, avatar: session.userAvatar };
   });
 
   // Logout
