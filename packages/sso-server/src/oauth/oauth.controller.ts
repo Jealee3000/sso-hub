@@ -1,13 +1,8 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Body,
-  HttpCode,
-  Headers,
-  UnauthorizedException,
+  Controller, Get, Post, Query, Body, HttpCode, Headers,
+  UnauthorizedException, Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OAuthService } from './oauth.service';
@@ -27,10 +22,15 @@ export class OAuthController {
   ) {}
 
   @Get('/authorize')
-  getAuthorize(@Query() query: AuthorizeDto) {
-    return {
-      redirect: `/login?client_id=${encodeURIComponent(query.client_id)}`,
-    };
+  getAuthorize(@Query() query: AuthorizeDto, @Res() res: Response) {
+    const params = new URLSearchParams({
+      client_id: query.client_id,
+      redirect_uri: query.redirect_uri,
+      response_type: query.response_type,
+      scope: query.scope || 'openid profile',
+      state: query.state,
+    });
+    res.redirect(`/login?${params.toString()}`);
   }
 
   @Post('/token')

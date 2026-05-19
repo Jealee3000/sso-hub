@@ -29,6 +29,8 @@ export class AuthService {
       raw: Record<string, unknown>;
     },
     ipAddress: string,
+    clientId?: string,
+    redirectUri?: string,
   ): Promise<string> {
     let identity = await this.identityRepo.findOne({
       where: { provider: 'github', providerUserId: profile.providerUserId },
@@ -68,13 +70,20 @@ export class AuthService {
     const code = uuid();
     await this.redis.setEx(`auth_code:${code}`, 300, JSON.stringify({
       userId: identity.user.id,
+      clientId: clientId || '',
+      redirectUri: redirectUri || '',
       scopes: ['openid', 'profile'],
     }));
 
     return code;
   }
 
-  async loginViaWallet(walletAddress: string, ipAddress: string): Promise<string> {
+  async loginViaWallet(
+    walletAddress: string,
+    ipAddress: string,
+    clientId?: string,
+    redirectUri?: string,
+  ): Promise<string> {
     const normalizedAddress = walletAddress.toLowerCase();
 
     let identity = await this.identityRepo.findOne({
@@ -107,6 +116,8 @@ export class AuthService {
     const code = uuid();
     await this.redis.setEx(`auth_code:${code}`, 300, JSON.stringify({
       userId: identity.user.id,
+      clientId: clientId || '',
+      redirectUri: redirectUri || '',
       scopes: ['openid', 'profile'],
     }));
 

@@ -22,10 +22,12 @@ export default function Login() {
   };
 
   const loginWithGithub = () => {
-    const redirect = clientId
-      ? `/login/github?redirect=${encodeURIComponent('/authorize?' + window.location.search.slice(1))}`
-      : '/login/github';
-    window.location.href = redirect;
+    const params = new URLSearchParams();
+    if (clientId) params.set('client_id', clientId);
+    if (redirectUri) params.set('redirect_uri', redirectUri);
+    if (state) params.set('state', state);
+    const qs = params.toString();
+    window.location.href = '/login/github' + (qs ? '?' + qs : '');
   };
 
   const loginWithWallet = async () => {
@@ -54,7 +56,11 @@ export default function Login() {
       const verifyRes = await fetch('/login/wallet/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nonce, signature, wallet_address: addr }),
+        body: JSON.stringify({
+          nonce, signature, wallet_address: addr,
+          client_id: clientId || '',
+          redirect_uri: redirectUri,
+        }),
       });
       const { code } = await verifyRes.json();
 
