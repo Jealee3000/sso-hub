@@ -2,19 +2,17 @@ version: "3.8"
 services:
   traefik:
     image: traefik:3.0
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - "ACME_EMAIL=${ACME_EMAIL}"
+      - "SSO_DOMAIN=${SSO_DOMAIN}"
+      - "BFF_A_DOMAIN=${BFF_A_DOMAIN}"
+      - "BFF_B_DOMAIN=${BFF_B_DOMAIN}"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro"
       - "letsencrypt:/letsencrypt"
     networks:
       - public
@@ -33,11 +31,6 @@ services:
       - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
       - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
       - webdist:/app/public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sso.rule=Host(`${SSO_DOMAIN}`)"
-      - "traefik.http.routers.sso.entrypoints=websecure"
-      - "traefik.http.routers.sso.tls.certresolver=letsencrypt"
     depends_on:
       web:
         condition: service_completed_successfully

@@ -1,0 +1,38 @@
+http:
+  routers:
+    sso:
+      rule: "Host(`{{ env "SSO_DOMAIN" }}`)"
+      entryPoints: ["websecure"]
+      service: sso-hub
+      tls:
+        certResolver: letsencrypt
+
+    bff-a:
+      rule: "Host(`{{ env "BFF_A_DOMAIN" }}`)"
+      entryPoints: ["websecure"]
+      service: bff-a
+      tls:
+        certResolver: letsencrypt
+
+    bff-b:
+      rule: "Host(`{{ env "BFF_B_DOMAIN" }}`)"
+      entryPoints: ["websecure"]
+      service: bff-b
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    sso-hub:
+      loadBalancer:
+        servers:
+          - url: "http://sso-hub:3000"
+
+    bff-a:
+      loadBalancer:
+        servers:
+          - url: "http://bff-a:3001"
+
+    bff-b:
+      loadBalancer:
+        servers:
+          - url: "http://bff-b:3002"
