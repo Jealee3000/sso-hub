@@ -1,28 +1,16 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Login from './pages/Login';
+import Admin from './pages/Admin';
+import Dashboard from './pages/Dashboard';
 
-function LoginPage() {
-  return <h1>Login</h1>
-}
-
-function AdminPage() {
-  return <h1>Admin Console</h1>
-}
-
-function AppPage() {
-  return <h1>Dashboard</h1>
-}
-
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/" element={<AppPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/*" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
-
-export default App

@@ -42,6 +42,8 @@ services:
     ports:
       - "3001:3001"
     env_file: .env/bff-app-a.env
+    volumes:
+      - ./packages/web/dist:/app/public
     depends_on:
       - redis
       - sso-hub
@@ -53,6 +55,8 @@ services:
     ports:
       - "3002:3002"
     env_file: .env/bff-app-b.env
+    volumes:
+      - ./packages/web/dist:/app/public
     depends_on:
       - redis
       - sso-hub
