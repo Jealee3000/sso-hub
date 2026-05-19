@@ -18,10 +18,21 @@ services:
       - "letsencrypt:/letsencrypt"
     networks:
       - public
+    restart: unless-stopped
 
   sso-hub:
-    build: ./packages/sso-server
-    env_file: ./packages/sso-server/.env.production
+    build:
+      context: .
+      dockerfile: ./packages/sso-server/Dockerfile
+    env_file: ./config/sso-server.env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/sso_hub
+      REDIS_URL: redis://redis:6379
+      COOKIE_SECURE: "true"
+    volumes:
+      - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
+      - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
+      - ./packages/web/dist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sso.rule=Host(`${SSO_DOMAIN}`)"
@@ -33,34 +44,53 @@ services:
     networks:
       - public
       - internal
+    restart: unless-stopped
 
   bff-a:
-    build: ./packages/bff-a
-    env_file: ./packages/bff-a/.env.production
+    build:
+      context: .
+      dockerfile: ./packages/bff/Dockerfile
+    env_file: ./config/bff-app-a.env
+    environment:
+      SSO_URL: http://sso-hub:3000
+      REDIS_URL: redis://redis:6379
+      COOKIE_SECURE: "true"
+    volumes:
+      - ./packages/web/dist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bffa.rule=Host(`${BFF_A_DOMAIN}`)"
       - "traefik.http.routers.bffa.entrypoints=websecure"
       - "traefik.http.routers.bffa.tls.certresolver=letsencrypt"
     depends_on:
-      - redis
+      - sso-hub
     networks:
       - public
       - internal
+    restart: unless-stopped
 
   bff-b:
-    build: ./packages/bff-b
-    env_file: ./packages/bff-b/.env.production
+    build:
+      context: .
+      dockerfile: ./packages/bff/Dockerfile
+    env_file: ./config/bff-app-b.env
+    environment:
+      SSO_URL: http://sso-hub:3000
+      REDIS_URL: redis://redis:6379
+      COOKIE_SECURE: "true"
+    volumes:
+      - ./packages/web/dist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bffb.rule=Host(`${BFF_B_DOMAIN}`)"
       - "traefik.http.routers.bffb.entrypoints=websecure"
       - "traefik.http.routers.bffb.tls.certresolver=letsencrypt"
     depends_on:
-      - redis
+      - sso-hub
     networks:
       - public
       - internal
+    restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
@@ -72,11 +102,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - internal
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     networks:
       - internal
+    restart: unless-stopped
 
 networks:
   public:
