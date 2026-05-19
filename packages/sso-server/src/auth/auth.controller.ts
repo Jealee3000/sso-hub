@@ -97,8 +97,8 @@ export class AuthController {
   }
 
   @Get('/logout')
-  ssoLogout(@Query('redirect') redirect: string, @Res() res: Response) {
-    this.ssoSession.clearSession(res);
+  async ssoLogout(@Query('redirect') redirect: string, @Req() req: Request, @Res() res: Response) {
+    await this.ssoSession.clearSession(res, req);
     if (redirect) {
       res.redirect(redirect);
     } else {

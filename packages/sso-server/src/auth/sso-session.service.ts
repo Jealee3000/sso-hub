@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
-import * as jwt from 'jsonwebtoken';
-import { ConfigService } from '../config/config.service';
+import { createClient } from 'redis';
+import { v4 as uuid } from 'uuid';
 
-interface SsoSession {
+export interface SsoSession {
   userId: string;
   email?: string;
   displayName?: string;
@@ -12,16 +12,15 @@ interface SsoSession {
 
 @Injectable()
 export class SsoSessionService {
-  constructor(private config: ConfigService) {}
+  constructor(@Inject('REDIS') private redis: ReturnType<typeof createClient>) {}
 
-  /** Set SSO's own session cookie — marks user as authenticated on SSO */
   setSession(res: Response, user: SsoSession) {
-    const token = jwt.sign(
-      { sub: user.userId, email: user.email, name: user.displayName, picture: user.avatarUrl },
-      this.config.jwtPrivateKey,
-      { algorithm: 'RS256', expiresIn: '24h', issuer: this.config.ssoBaseUrl },
-    );
-    res.cookie('sso_sid', token, {
+    const sid = uuid();
+    this.redis.setEx(`sso_session:${sid}`, 24 * 3600, JSON.stringify(user));
+    // 维护用户→会话索引，支持管理员吊销
+    this.redis.sAdd(`user_sessions:${user.userId}`, sid);
+    this.redis.expire(`user_sessions:${user.userId}`, 24 * 3600);
+    res.cookie('sso_sid', sid, {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
@@ -30,24 +29,32 @@ export class SsoSessionService {
     });
   }
 
-  /** Check if user already has an active SSO session */
-  getSession(req: Request): SsoSession | null {
-    const token = req.cookies?.['sso_sid'];
-    if (!token) return null;
-    try {
-      const payload = jwt.verify(token, this.config.jwtPublicKey, { algorithms: ['RS256'] }) as jwt.JwtPayload;
-      return {
-        userId: payload.sub!,
-        email: payload.email,
-        displayName: payload.name,
-        avatarUrl: payload.picture,
-      };
-    } catch {
-      return null;
-    }
+  async getSession(req: Request): Promise<SsoSession | null> {
+    const sid = req.cookies?.['sso_sid'];
+    if (!sid) return null;
+    const raw = await this.redis.get(`sso_session:${sid}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
   }
 
-  clearSession(res: Response) {
+  async clearSession(res: Response, req?: Request) {
+    if (req) {
+      const sid = req.cookies?.['sso_sid'];
+      if (sid) await this.redis.del(`sso_session:${sid}`);
+    }
     res.clearCookie('sso_sid', { path: '/' });
+  }
+
+  /** 管理员操作：强制清除指定用户的全部 SSO 会话 */
+  async revokeUserSessions(userId: string) {
+    // Redis 不支持按 value 扫描，用 SET 维护用户 → session 列表
+    const key = `user_sessions:${userId}`;
+    const members = await this.redis.sMembers(key);
+    if (members.length) {
+      const pipe = this.redis.multi();
+      members.forEach((sid) => pipe.del(`sso_session:${sid}`));
+      pipe.del(key);
+      await pipe.exec();
+    }
   }
 }

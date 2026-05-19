@@ -29,7 +29,7 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const ssoUser = this.ssoSession.getSession(req);
+    const ssoUser = await this.ssoSession.getSession(req);
 
     if (ssoUser) {
       // 已有 SSO 登录态 → 展示确认页面，让用户选择是否用当前账户
@@ -76,7 +76,7 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const ssoUser = this.ssoSession.getSession(req);
+    const ssoUser = await this.ssoSession.getSession(req);
     if (!ssoUser) {
       // 没登录，跳回登录页
       const params = new URLSearchParams({
