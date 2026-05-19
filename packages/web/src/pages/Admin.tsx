@@ -69,6 +69,14 @@ export default function Admin() {
     fetchClients();
   };
 
+  const resetSecret = async (id: string) => {
+    const res = await fetch(`/admin/clients/${id}/reset-secret`, { method: 'POST' });
+    const data = await res.json();
+    setResult({ clientId: data.clientId, clientSecret: data.clientSecret });
+    showToast('Secret 已重置', 'success');
+    fetchClients();
+  };
+
   const delClient = async (id: string) => {
     await fetch(`/admin/clients/${id}`, { method: 'DELETE' });
     showToast('应用已停用', 'success');
@@ -160,7 +168,8 @@ export default function Admin() {
                     </span>
                   </td>
                   <td style={{ color: 'var(--text-secondary)' }}>{new Date(c.createdAt).toLocaleDateString()}</td>
-                  <td>
+                  <td style={{ display: 'flex', gap: 8 }}>
+                    <button style={styles.btnGhost} onClick={() => resetSecret(c.id)}>重置</button>
                     <button style={styles.btnDanger} onClick={() => delClient(c.id)}>停用</button>
                   </td>
                 </tr>

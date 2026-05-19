@@ -33,6 +33,17 @@ export class AdminService {
     await this.clientRepo.update(id, { isActive: false });
   }
 
+  async resetSecret(id: string) {
+    const client = await this.clientRepo.findOne({ where: { id } });
+    if (!client) throw new NotFoundException('应用不存在');
+
+    const newSecret = uuid();
+    client.clientSecret = await bcrypt.hash(newSecret, 10);
+    await this.clientRepo.save(client);
+
+    return { id: client.id, name: client.name, clientId: client.clientId, clientSecret: newSecret };
+  }
+
   async listUsers() {
     return this.userRepo.find({ select: ['id', 'email', 'displayName', 'isAdmin', 'createdAt'] });
   }

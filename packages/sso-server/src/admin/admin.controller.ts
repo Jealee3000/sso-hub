@@ -16,6 +16,9 @@ export class AdminController {
   @Delete('clients/:id')
   deleteClient(@Param('id') id: string) { return this.admin.deleteClient(id); }
 
+  @Post('clients/:id/reset-secret')
+  resetSecret(@Param('id') id: string) { return this.admin.resetSecret(id); }
+
   @Get('users')
   listUsers() { return this.admin.listUsers(); }
 
