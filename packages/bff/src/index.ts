@@ -5,7 +5,7 @@ import fastifyStatic from '@fastify/static';
 import RedisStore from 'connect-redis';
 import { createClient } from 'redis';
 import { config } from './config';
-import { buildAuthGuard, handleCallback } from './auth';
+import { handleCallback } from './auth';
 import path from 'path';
 
 async function main() {
@@ -27,7 +27,8 @@ async function main() {
     prefix: '/',
   });
 
-  const callbackUrl = config.ssoExternalUrl + config.callbackPath;
+  // BFF 自己的回调地址（SSO 登录后回跳到这里），必须浏览器可达
+  const callbackUrl = `http://localhost:${config.port}${config.callbackPath}`;
 
   // Home page — always serve, don't force redirect
   app.get('/', async (req, reply) => {

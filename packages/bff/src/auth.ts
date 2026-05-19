@@ -1,29 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 
-export function buildAuthGuard(ssoExternalUrl: string, clientId: string, callbackUrl: string) {
-  return async function authGuard(req: FastifyRequest, reply: FastifyReply) {
-    const session = (req as any).session;
-    if (session?.userId) return;
-
-    const crypto = require('crypto');
-    const state = crypto.randomUUID();
-
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: callbackUrl,
-      response_type: 'code',
-      scope: 'openid profile',
-      state,
-    });
-
-    session.state = state;
-    await session.save();
-
-    // Browser redirect — must use external address (not Docker internal hostname)
-    reply.redirect(`${ssoExternalUrl}/authorize?${params}`);
-  };
-}
-
 export async function handleCallback(
   req: FastifyRequest,
   reply: FastifyReply,
