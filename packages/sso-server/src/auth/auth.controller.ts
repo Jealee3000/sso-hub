@@ -1,11 +1,15 @@
-import { Controller, Get, Post, Body, Query, Req, Res, Inject, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Req, Res, Inject, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { createClient } from 'redis';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
 import { SsoSessionService } from './sso-session.service';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { GitHubStrategy } from './strategies/github.strategy';
 import { WalletStrategy } from './strategies/wallet.strategy';
 import { ConfigService } from '../config/config.service';
+import { User } from '../entities/user.entity';
 
 @Controller()
 export class AuthController {
@@ -17,6 +21,7 @@ export class AuthController {
     private config: ConfigService,
     private ssoSession: SsoSessionService,
     @Inject('REDIS') private redis: ReturnType<typeof createClient>,
+    @InjectRepository(User) private userRepo: Repository<User>,
   ) {
     this.github = new GitHubStrategy(
       this.config.githubClientId,
@@ -34,6 +39,10 @@ export class AuthController {
       const avatar = ssoUser.avatarUrl
         ? `<img src="${ssoUser.avatarUrl}" style="width:64px;height:64px;border-radius:50%;border:2px solid #334155;" alt="" />`
         : `<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8896a9" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>`;
+
+      const user = await this.userRepo.findOne({ where: { id: ssoUser.userId } });
+      const isAdmin = user?.isAdmin;
+      const adminBtn = isAdmin ? `<a class="btn btn-admin" href="/admin">进入管理后台</a>` : '';
 
       return res.send(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SSO Hub</title>
 <style>
@@ -63,7 +72,7 @@ export class AuthController {
     </div>
   </div>
   <div class="actions">
-    <a class="btn btn-admin" href="/admin">进入管理后台</a>
+    ${adminBtn}
     <a class="btn btn-logout" href="/logout?redirect=/">退出登录</a>
   </div>
 </div>
@@ -78,6 +87,7 @@ export class AuthController {
   }
 
   @Get('/admin')
+  @UseGuards(AdminGuard)
   getAdminPage(@Res() res: Response) {
     res.sendFile('index.html', { root: 'public' });
   }
