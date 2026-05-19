@@ -2,7 +2,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/sso-server/package.json ./packages/sso-server/
-RUN npm ci
+RUN npm install
 COPY tsconfig.base.json ./
 COPY packages/sso-server/tsconfig.json packages/sso-server/nest-cli.json ./packages/sso-server/
 COPY packages/sso-server/src/ ./packages/sso-server/src/
