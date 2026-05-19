@@ -9,6 +9,7 @@ export default function Login() {
   const redirectUri = queryParams.get('redirect_uri') || '';
   const clientId = queryParams.get('client_id') || '';
   const state = queryParams.get('state') || '';
+  const appName = queryParams.get('app_name') || '';
 
   const loginWithGithub = () => {
     const params = new URLSearchParams();
@@ -82,6 +83,12 @@ export default function Login() {
           <span style={styles.logoText}>SSO Hub</span>
         </div>
 
+        {appName && (
+          <div style={styles.appBadge}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <span>正在登录 {appName}</span>
+          </div>
+        )}
         <p style={styles.subtitle}>选择登录方式以继续</p>
 
         <div style={styles.divider}>
@@ -150,6 +157,12 @@ const styles: Record<string, React.CSSProperties> = {
   logoText: {
     fontSize: 28, fontWeight: 700, letterSpacing: -0.5, color: 'var(--text-primary)',
     fontFamily: 'var(--font-ui)',
+  },
+  appBadge: {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '6px 14px', borderRadius: 20,
+    background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)',
+    color: 'var(--accent)', fontSize: 13, marginBottom: 16,
   },
   subtitle: {
     color: 'var(--text-secondary)', fontSize: 15, marginBottom: 24,

@@ -30,6 +30,13 @@ export class OAuthService {
     private jwt: JwtService,
   ) {}
 
+  async validateClient(clientId: string, redirectUri: string): Promise<{ name: string }> {
+    const client = await this.clientRepo.findOne({ where: { clientId } });
+    if (!client || !client.isActive) throw new UnauthorizedException('invalid_client');
+    if (!client.redirectUris.includes(redirectUri)) throw new UnauthorizedException('invalid_redirect_uri');
+    return { name: client.name };
+  }
+
   async storeAuthCode(data: AuthCodeData): Promise<string> {
     const code = uuid();
     await this.redis.setEx(`auth_code:${code}`, 300, JSON.stringify(data));

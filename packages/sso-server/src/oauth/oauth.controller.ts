@@ -29,20 +29,28 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    // 校验 client_id + redirect_uri
+    let clientName: string;
+    try {
+      const client = await this.oauth.validateClient(query.client_id, query.redirect_uri);
+      clientName = client.name;
+    } catch (err) {
+      return res.status(401).send(renderErrorPage('无效的客户端', 'client_id 不存在、已停用，或 redirect_uri 不匹配'));
+    }
+
     const ssoUser = await this.ssoSession.getSession(req);
 
     if (ssoUser) {
-      // 已有 SSO 登录态 → 展示确认页面，让用户选择是否用当前账户
-      return res.send(renderConfirmPage(ssoUser, query));
+      return res.send(renderConfirmPage(ssoUser, query, clientName));
     }
 
-    // 无 SSO 登录态 → 跳转登录页
     const params = new URLSearchParams({
       client_id: query.client_id,
       redirect_uri: query.redirect_uri,
       response_type: query.response_type,
       scope: query.scope || 'openid profile',
       state: query.state,
+      app_name: clientName,
     });
     res.redirect(`/login?${params.toString()}`);
   }
@@ -157,9 +165,18 @@ export class OAuthController {
   }
 }
 
+function renderErrorPage(title: string, message: string): string {
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SSO Hub</title>
+<style>body{background:#060912;color:#e8edf5;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.card{background:#111827;border-radius:16px;padding:40px;max-width:420px;text-align:center;border:1px solid #1e293b}
+h1{font-size:20px;margin-bottom:8px}.sub{color:#ef4444;font-size:14px;margin-bottom:16px}.msg{color:#8896a9;font-size:14px}</style></head><body>
+<div class="card"><h1>${title}</h1><p class="sub">${message}</p></div></body></html>`;
+}
+
 function renderConfirmPage(
   ssoUser: { userId: string; email?: string; displayName?: string; avatarUrl?: string },
   query: AuthorizeDto,
+  appName: string,
 ): string {
   const name = ssoUser.displayName || ssoUser.email || ssoUser.userId.slice(0, 8);
   const avatar = ssoUser.avatarUrl
@@ -192,8 +209,8 @@ function renderConfirmPage(
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
     <span>SSO Hub</span>
   </div>
-  <h1>继续登录</h1>
-  <p class="sub">使用当前已登录的 SSO 账户</p>
+  <h1>${appName}</h1>
+  <p class="sub">使用当前已登录的 SSO 账户继续</p>
   <div class="user">
     ${avatar}
     <div>
