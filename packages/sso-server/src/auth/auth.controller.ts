@@ -97,9 +97,13 @@ export class AuthController {
   }
 
   @Get('/logout')
-  ssoLogout(@Res() res: Response) {
+  ssoLogout(@Query('redirect') redirect: string, @Res() res: Response) {
     this.ssoSession.clearSession(res);
-    res.json({ message: 'Logged out' });
+    if (redirect) {
+      res.redirect(redirect);
+    } else {
+      res.json({ message: 'Logged out' });
+    }
   }
 
   @Post('/login/wallet/nonce')
