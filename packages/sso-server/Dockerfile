@@ -12,6 +12,6 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY packages/sso-server/package.json ./
-COPY packages/sso-server/public/ public/
+RUN mkdir -p public
 EXPOSE 3000
 CMD ["node", "dist/main"]
