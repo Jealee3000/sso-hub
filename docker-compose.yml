@@ -32,15 +32,19 @@ services:
     volumes:
       - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
       - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sso.rule=Host(`${SSO_DOMAIN}`)"
       - "traefik.http.routers.sso.entrypoints=websecure"
       - "traefik.http.routers.sso.tls.certresolver=letsencrypt"
     depends_on:
-      - postgres
-      - redis
+      web:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
     networks:
       - public
       - internal
@@ -56,14 +60,17 @@ services:
       REDIS_URL: redis://redis:6379
       COOKIE_SECURE: "true"
     volumes:
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bffa.rule=Host(`${BFF_A_DOMAIN}`)"
       - "traefik.http.routers.bffa.entrypoints=websecure"
       - "traefik.http.routers.bffa.tls.certresolver=letsencrypt"
     depends_on:
-      - sso-hub
+      web:
+        condition: service_completed_successfully
+      sso-hub:
+        condition: service_started
     networks:
       - public
       - internal
@@ -79,14 +86,17 @@ services:
       REDIS_URL: redis://redis:6379
       COOKIE_SECURE: "true"
     volumes:
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bffb.rule=Host(`${BFF_B_DOMAIN}`)"
       - "traefik.http.routers.bffb.entrypoints=websecure"
       - "traefik.http.routers.bffb.tls.certresolver=letsencrypt"
     depends_on:
-      - sso-hub
+      web:
+        condition: service_completed_successfully
+      sso-hub:
+        condition: service_started
     networks:
       - public
       - internal
@@ -110,6 +120,14 @@ services:
       - internal
     restart: unless-stopped
 
+  web:
+    build:
+      context: .
+      dockerfile: ./packages/web/Dockerfile
+    volumes:
+      - webdist:/output
+    command: ["cp", "-r", "/dist/.", "/output/"]
+
 networks:
   public:
   internal:
@@ -118,3 +136,4 @@ networks:
 volumes:
   pgdata:
   letsencrypt:
+  webdist:

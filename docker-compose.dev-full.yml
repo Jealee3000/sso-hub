@@ -16,6 +16,14 @@ services:
     ports:
       - "6379:6379"
 
+  web:
+    build:
+      context: .
+      dockerfile: ./packages/web/Dockerfile
+    volumes:
+      - webdist:/output
+    command: ["cp", "-r", "/dist/.", "/output/"]
+
   sso-hub:
     build:
       context: .
@@ -30,10 +38,14 @@ services:
     volumes:
       - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
       - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     depends_on:
-      - postgres
-      - redis
+      web:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
 
   bff-a:
     build:
@@ -43,10 +55,14 @@ services:
       - "3001:3001"
     env_file: config/bff-app-a.env
     volumes:
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     depends_on:
-      - redis
-      - sso-hub
+      web:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      sso-hub:
+        condition: service_started
 
   bff-b:
     build:
@@ -56,10 +72,15 @@ services:
       - "3002:3002"
     env_file: config/bff-app-b.env
     volumes:
-      - ./packages/web/dist:/app/public
+      - webdist:/app/public
     depends_on:
-      - redis
-      - sso-hub
+      web:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      sso-hub:
+        condition: service_started
 
 volumes:
   pgdata_devfull:
+  webdist:
