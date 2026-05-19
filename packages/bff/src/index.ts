@@ -20,7 +20,7 @@ async function main() {
     store: new RedisStore({ client: redis as any }),
     secret: config.sessionSecret,
     cookieName: config.cookieName,
-    cookie: { secure: false, httpOnly: true, sameSite: 'lax' as const, maxAge: 24 * 60 * 60 * 1000 },
+    cookie: { secure: config.cookieSecure, httpOnly: true, sameSite: 'lax' as const, maxAge: 24 * 60 * 60 * 1000 },
   });
 
   await app.register(fastifyStatic, {
@@ -28,8 +28,7 @@ async function main() {
     prefix: '/',
   });
 
-  // BFF 自己的回调地址（SSO 登录后回跳到这里），必须浏览器可达
-  const callbackUrl = `http://localhost:${config.port}${config.callbackPath}`;
+  const callbackUrl = `${config.bffExternalUrl}${config.callbackPath}`;
 
   // Home page — always serve, don't force redirect
   app.get('/', async (req, reply) => {
@@ -72,8 +71,7 @@ async function main() {
   app.get('/logout', async (req, reply) => {
     const session = (req as any).session;
     await session.destroy();
-    const bffUrl = `http://localhost:${config.port}`;
-    reply.redirect(`${config.ssoExternalUrl}/logout?redirect=${encodeURIComponent(bffUrl + '/')}`);
+    reply.redirect(`${config.ssoExternalUrl}/logout?redirect=${encodeURIComponent(config.bffExternalUrl + '/')}`);
   });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });

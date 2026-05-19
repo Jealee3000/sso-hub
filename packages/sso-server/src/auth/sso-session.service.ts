@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { createClient } from 'redis';
 import { v4 as uuid } from 'uuid';
+import { ConfigService } from '../config/config.service';
 
 export interface SsoSession {
   userId: string;
@@ -12,18 +13,24 @@ export interface SsoSession {
 
 @Injectable()
 export class SsoSessionService {
-  constructor(@Inject('REDIS') private redis: ReturnType<typeof createClient>) {}
+  constructor(
+    @Inject('REDIS') private redis: ReturnType<typeof createClient>,
+    private config: ConfigService,
+  ) {}
+
+  private get cookieSecure(): boolean {
+    return process.env.COOKIE_SECURE === 'true';
+  }
 
   setSession(res: Response, user: SsoSession) {
     const sid = uuid();
     this.redis.setEx(`sso_session:${sid}`, 24 * 3600, JSON.stringify(user));
-    // 维护用户→会话索引，支持管理员吊销
     this.redis.sAdd(`user_sessions:${user.userId}`, sid);
     this.redis.expire(`user_sessions:${user.userId}`, 24 * 3600);
     res.cookie('sso_sid', sid, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: this.cookieSecure,
+      sameSite: this.cookieSecure ? 'strict' : 'lax',
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
