@@ -7,10 +7,11 @@ import { OAuthClient } from '../entities/oauth-client.entity';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { ConfigService } from '../config/config.service';
+import { AuthModule } from '../auth/auth.module';
 import { createClient } from 'redis';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OAuthClient, User, RefreshToken])],
+  imports: [TypeOrmModule.forFeature([OAuthClient, User, RefreshToken]), AuthModule],
   controllers: [OAuthController],
   providers: [
     OAuthService,
