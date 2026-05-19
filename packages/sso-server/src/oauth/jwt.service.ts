@@ -49,7 +49,6 @@ export class JwtService {
         algorithm: 'RS256',
         expiresIn: '15m',
         issuer: this.config.ssoBaseUrl,
-        subject: payload.sub,
         audience: payload.aud,
       },
     );

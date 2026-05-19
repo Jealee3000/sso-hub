@@ -36,12 +36,17 @@ export class OAuthController {
   @Post('/token')
   @HttpCode(200)
   async postToken(@Body() body: TokenDto) {
-    return this.oauth.exchangeCode(
-      body.code,
-      body.client_id,
-      body.client_secret,
-      body.redirect_uri,
-    );
+    try {
+      return await this.oauth.exchangeCode(
+        body.code,
+        body.client_id,
+        body.client_secret,
+        body.redirect_uri,
+      );
+    } catch (err) {
+      console.error('Token exchange error:', err);
+      throw err;
+    }
   }
 
   @Get('/.well-known/openid-configuration')
