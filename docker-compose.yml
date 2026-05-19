@@ -2,11 +2,12 @@ version: "3.8"
 services:
   traefik:
     image: traefik:3.0
+    command:
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
     ports:
       - "80:80"
       - "443:443"
     environment:
-      - "ACME_EMAIL=${ACME_EMAIL}"
       - "SSO_DOMAIN=${SSO_DOMAIN}"
       - "BFF_A_DOMAIN=${BFF_A_DOMAIN}"
       - "BFF_B_DOMAIN=${BFF_B_DOMAIN}"
