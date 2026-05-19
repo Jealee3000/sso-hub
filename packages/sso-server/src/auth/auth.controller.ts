@@ -64,7 +64,7 @@ export class AuthController {
   </div>
   <div class="actions">
     <a class="btn btn-admin" href="/admin">进入管理后台</a>
-    <a class="btn btn-logout" href="/logout">退出登录</a>
+    <a class="btn btn-logout" href="/logout?redirect=/">退出登录</a>
   </div>
 </div>
 </body></html>`);

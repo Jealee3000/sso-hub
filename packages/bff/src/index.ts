@@ -72,7 +72,7 @@ async function main() {
   app.get('/logout', async (req, reply) => {
     const session = (req as any).session;
     await session.destroy();
-    reply.redirect(config.ssoExternalUrl + '/logout');
+    reply.redirect('/');
   });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
