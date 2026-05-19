@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Query, Req, Res, Inject, UnauthorizedExcep
 import { Request, Response } from 'express';
 import { createClient } from 'redis';
 import { AuthService } from './auth.service';
+import { SsoSessionService } from './sso-session.service';
 import { GitHubStrategy } from './strategies/github.strategy';
 import { WalletStrategy } from './strategies/wallet.strategy';
 import { ConfigService } from '../config/config.service';
@@ -14,6 +15,7 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private config: ConfigService,
+    private ssoSession: SsoSessionService,
     @Inject('REDIS') private redis: ReturnType<typeof createClient>,
   ) {
     this.github = new GitHubStrategy(
@@ -72,18 +74,32 @@ export class AuthController {
       await this.redis.del(`oauth_ctx:${ghState}`);
     }
 
-    const authCode = await this.authService.loginViaGitHub(
+    const result = await this.authService.loginViaGitHub(
       profile, req.ip || '127.0.0.1', clientId, redirectUri,
     );
 
+    // 设置 SSO 自身登录态
+    this.ssoSession.setSession(res, {
+      userId: result.user.id,
+      email: result.user.email,
+      displayName: result.user.displayName,
+      avatarUrl: result.user.avatarUrl,
+    });
+
     if (redirectUri) {
       const redirectUrl = new URL(redirectUri);
-      redirectUrl.searchParams.set('code', authCode);
+      redirectUrl.searchParams.set('code', result.code);
       if (state) redirectUrl.searchParams.set('state', state);
       res.redirect(redirectUrl.toString());
     } else {
-      res.json({ code: authCode });
+      res.json({ code: result.code });
     }
+  }
+
+  @Get('/logout')
+  ssoLogout(@Res() res: Response) {
+    this.ssoSession.clearSession(res);
+    res.json({ message: 'Logged out' });
   }
 
   @Post('/login/wallet/nonce')
@@ -100,13 +116,20 @@ export class AuthController {
     @Body('client_id') clientId: string,
     @Body('redirect_uri') redirectUri: string,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const valid = await this.wallet.verifySignature(nonce, signature, walletAddress);
     if (!valid) throw new UnauthorizedException('Invalid signature');
 
-    const code = await this.authService.loginViaWallet(
+    const result = await this.authService.loginViaWallet(
       walletAddress, req.ip || '127.0.0.1', clientId, redirectUri,
     );
-    return { code };
+    this.ssoSession.setSession(res, {
+      userId: result.user.id,
+      email: result.user.email,
+      displayName: result.user.displayName,
+      avatarUrl: result.user.avatarUrl,
+    });
+    return { code: result.code };
   }
 }

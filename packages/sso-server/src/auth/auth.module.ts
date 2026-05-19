@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { createClient } from 'redis';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { SsoSessionService } from './sso-session.service';
 import { WalletStrategy } from './strategies/wallet.strategy';
 import { User } from '../entities/user.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
@@ -14,6 +15,7 @@ import { ConfigService } from '../config/config.service';
   controllers: [AuthController],
   providers: [
     AuthService,
+    SsoSessionService,
     WalletStrategy,
     {
       provide: 'REDIS',
@@ -25,6 +27,6 @@ import { ConfigService } from '../config/config.service';
       inject: [ConfigService],
     },
   ],
-  exports: [AuthService],
+  exports: [AuthService, SsoSessionService],
 })
 export class AuthModule {}

@@ -1,13 +1,14 @@
 import {
   Controller, Get, Post, Query, Body, HttpCode, Headers,
-  UnauthorizedException, Res,
+  UnauthorizedException, Res, Req,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OAuthService } from './oauth.service';
 import { ConfigService } from '../config/config.service';
 import { JwtService } from './jwt.service';
+import { SsoSessionService } from '../auth/sso-session.service';
 import { AuthorizeDto } from './dto/authorize.dto';
 import { TokenDto } from './dto/token.dto';
 import { User } from '../entities/user.entity';
@@ -18,11 +19,33 @@ export class OAuthController {
     private oauth: OAuthService,
     private config: ConfigService,
     private jwt: JwtService,
+    private ssoSession: SsoSessionService,
     @InjectRepository(User) private userRepo: Repository<User>,
   ) {}
 
   @Get('/authorize')
-  getAuthorize(@Query() query: AuthorizeDto, @Res() res: Response) {
+  async getAuthorize(
+    @Query() query: AuthorizeDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const ssoUser = this.ssoSession.getSession(req);
+
+    if (ssoUser) {
+      // 已有 SSO 登录态 → 跳过登录页，直接签发 auth_code
+      const code = await this.oauth.storeAuthCode({
+        userId: ssoUser.userId,
+        clientId: query.client_id,
+        redirectUri: query.redirect_uri,
+        scopes: (query.scope || 'openid profile').split(' '),
+      });
+      const redirectUrl = new URL(query.redirect_uri);
+      redirectUrl.searchParams.set('code', code);
+      redirectUrl.searchParams.set('state', query.state);
+      return res.redirect(redirectUrl.toString());
+    }
+
+    // 无 SSO 登录态 → 跳转登录页
     const params = new URLSearchParams({
       client_id: query.client_id,
       redirect_uri: query.redirect_uri,
@@ -101,6 +124,6 @@ export class OAuthController {
 
   @Post('/revoke')
   async revoke(@Body('token') token: string) {
-    return {}; // Refresh token revocation will be enhanced later
+    return {};
   }
 }
