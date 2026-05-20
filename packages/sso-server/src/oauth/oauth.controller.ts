@@ -179,7 +179,16 @@ export class OAuthController {
   }
 
   @Post('/revoke')
-  async revoke(@Body('token') token: string) {
+  async revoke(
+    @Body('token') token: string,
+    @Body('client_id') clientId: string,
+    @Body('client_secret') clientSecret: string,
+  ) {
+    try {
+      await this.oauth.revokeToken(token, clientId, clientSecret);
+    } catch (err) {
+      Logger.error('Token revocation failed', (err as Error).stack, 'OAuthController');
+    }
     return {};
   }
 }

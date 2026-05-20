@@ -7,6 +7,7 @@ COPY packages/bff/src/ ./src/
 RUN npx tsc
 
 FROM node:24-alpine
+RUN apk add --no-cache wget
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules

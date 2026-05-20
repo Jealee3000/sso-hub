@@ -101,6 +101,8 @@ export class AuthController {
     @Query('redirect_uri') redirectUri: string,
     @Query('state') state: string,
     @Query('client_id') clientId: string,
+    @Query('code_challenge') codeChallenge: string,
+    @Query('code_challenge_method') codeChallengeMethod: string,
     @Res() res: Response,
   ) {
     const ghState = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
@@ -108,6 +110,8 @@ export class AuthController {
       redirectUri: redirectUri || '',
       state: state || '',
       clientId: clientId || '',
+      codeChallenge: codeChallenge || '',
+      codeChallengeMethod: codeChallengeMethod || '',
     }));
     const authUrl = this.github.getAuthUrl(ghState);
     res.redirect(authUrl);
@@ -125,17 +129,21 @@ export class AuthController {
     let clientId: string | undefined;
     let redirectUri: string | undefined;
     let state: string | undefined;
+    let codeChallenge: string | undefined;
+    let codeChallengeMethod: string | undefined;
     const ctxStr = await this.redis.get(`oauth_ctx:${ghState}`);
     if (ctxStr) {
       const ctx = JSON.parse(ctxStr);
       clientId = ctx.clientId;
       redirectUri = ctx.redirectUri;
       state = ctx.state;
+      codeChallenge = ctx.codeChallenge;
+      codeChallengeMethod = ctx.codeChallengeMethod;
       await this.redis.del(`oauth_ctx:${ghState}`);
     }
 
     const result = await this.authService.loginViaGitHub(
-      profile, req.ip || '127.0.0.1', clientId, redirectUri,
+      profile, req.ip || '127.0.0.1', clientId, redirectUri, codeChallenge, codeChallengeMethod,
     );
 
     // 设置 SSO 自身登录态
@@ -183,6 +191,8 @@ export class AuthController {
     @Body('wallet_address') walletAddress: string,
     @Body('client_id') clientId: string,
     @Body('redirect_uri') redirectUri: string,
+    @Body('code_challenge') codeChallenge: string,
+    @Body('code_challenge_method') codeChallengeMethod: string,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -190,7 +200,7 @@ export class AuthController {
     if (!valid) throw new UnauthorizedException('Invalid signature');
 
     const result = await this.authService.loginViaWallet(
-      walletAddress, req.ip || '127.0.0.1', clientId, redirectUri,
+      walletAddress, req.ip || '127.0.0.1', clientId, redirectUri, codeChallenge, codeChallengeMethod,
     );
     this.ssoSession.setSession(res, {
       userId: result.user.id,

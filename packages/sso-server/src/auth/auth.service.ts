@@ -31,6 +31,8 @@ export class AuthService {
     ipAddress: string,
     clientId?: string,
     redirectUri?: string,
+    codeChallenge?: string,
+    codeChallengeMethod?: string,
   ): Promise<{ code: string; user: { id: string; email?: string; displayName?: string; avatarUrl?: string } }> {
     let identity = await this.identityRepo.findOne({
       where: { provider: 'github', providerUserId: profile.providerUserId },
@@ -74,6 +76,8 @@ export class AuthService {
       clientId: clientId || '',
       redirectUri: redirectUri || '',
       scopes: ['openid', 'profile'],
+      codeChallenge: codeChallenge || '',
+      codeChallengeMethod: codeChallengeMethod || '',
     }));
 
     return { code, user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl } };
@@ -84,6 +88,8 @@ export class AuthService {
     ipAddress: string,
     clientId?: string,
     redirectUri?: string,
+    codeChallenge?: string,
+    codeChallengeMethod?: string,
   ): Promise<{ code: string; user: { id: string; email?: string; displayName?: string; avatarUrl?: string } }> {
     const normalizedAddress = walletAddress.toLowerCase();
 
@@ -121,6 +127,8 @@ export class AuthService {
       clientId: clientId || '',
       redirectUri: redirectUri || '',
       scopes: ['openid', 'profile'],
+      codeChallenge: codeChallenge || '',
+      codeChallengeMethod: codeChallengeMethod || '',
     }));
 
     return { code, user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl } };

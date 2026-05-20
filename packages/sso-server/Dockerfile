@@ -8,6 +8,7 @@ COPY packages/sso-server/src/ ./src/
 RUN npx nest build
 
 FROM node:24-alpine
+RUN apk add --no-cache wget
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules

@@ -183,4 +183,13 @@ export class OAuthService {
       refresh_token: newRefreshValue,
     };
   }
+
+  async revokeToken(refreshToken: string, clientId: string, clientSecret: string) {
+    const client = await this.clientRepo.findOne({ where: { clientId } });
+    if (!client || !(await bcrypt.compare(clientSecret, client.clientSecret))) {
+      throw new UnauthorizedException('invalid_client');
+    }
+    // 从 Redis 删除，下次 refresh 查不到直接 invalid_grant
+    await this.redis.del(`refresh_token:${refreshToken}`);
+  }
 }

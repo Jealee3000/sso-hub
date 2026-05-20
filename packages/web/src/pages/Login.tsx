@@ -10,12 +10,16 @@ export default function Login() {
   const clientId = queryParams.get('client_id') || '';
   const state = queryParams.get('state') || '';
   const appName = queryParams.get('app_name') || '';
+  const codeChallenge = queryParams.get('code_challenge') || '';
+  const codeChallengeMethod = queryParams.get('code_challenge_method') || '';
 
   const loginWithGithub = () => {
     const params = new URLSearchParams();
     if (clientId) params.set('client_id', clientId);
     if (redirectUri) params.set('redirect_uri', redirectUri);
     if (state) params.set('state', state);
+    if (codeChallenge) params.set('code_challenge', codeChallenge);
+    if (codeChallengeMethod) params.set('code_challenge_method', codeChallengeMethod);
     const qs = params.toString();
     window.location.href = '/login/github' + (qs ? '?' + qs : '');
   };
@@ -50,6 +54,8 @@ export default function Login() {
           nonce, signature, wallet_address: addr,
           client_id: clientId || '',
           redirect_uri: redirectUri,
+          code_challenge: codeChallenge,
+          code_challenge_method: codeChallengeMethod,
         }),
       });
       const { code } = await verifyRes.json();
