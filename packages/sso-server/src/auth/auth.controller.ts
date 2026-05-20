@@ -30,7 +30,7 @@ export class AuthController {
       this.config.githubClientSecret,
       `${this.config.ssoBaseUrl}/login/github/callback`,
     );
-    this.wallet = new WalletStrategy(this.redis);
+    this.wallet = new WalletStrategy(this.redis, this.config.ssoBaseUrl);
   }
 
   @Get('/')
@@ -197,7 +197,7 @@ export class AuthController {
   @UseGuards(RateLimitGuard)
   @RateLimit(60, 5)
   async loginWallet(
-    @Body('nonce') nonce: string,
+    @Body('message') message: string,
     @Body('signature') signature: string,
     @Body('wallet_address') walletAddress: string,
     @Body('client_id') clientId: string,
@@ -207,8 +207,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const valid = await this.wallet.verifySignature(nonce, signature, walletAddress);
-    if (!valid) throw new UnauthorizedException('Invalid signature');
+    const verifyResult = await this.wallet.verifySignature(message, signature, walletAddress);
+    if (!verifyResult.valid) throw new UnauthorizedException(verifyResult.error || 'Invalid signature');
 
     const result = await this.authService.loginViaWallet(
       walletAddress, req.ip || '127.0.0.1', clientId, redirectUri, codeChallenge, codeChallengeMethod,

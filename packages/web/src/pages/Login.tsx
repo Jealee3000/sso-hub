@@ -28,9 +28,24 @@ export default function Login() {
       setLoading(true); setError('');
       const [addr] = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
       setWalletAddr(addr);
+      const chainId = await (window as any).ethereum.request({ method: 'eth_chainId' });
       const { nonce } = await fetch('/login/wallet/nonce', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet_address: addr }) }).then(r => r.json());
-      const sig = await (window as any).ethereum.request({ method: 'personal_sign', params: [`Sign this message to log in to SSO Hub.\nNonce: ${nonce}`, addr] });
-      const { code } = await fetch('/login/wallet/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nonce, signature: sig, wallet_address: addr, client_id: clientId || '', redirect_uri: redirectUri, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod }) }).then(r => r.json());
+      const domain = window.location.hostname;
+      const issuedAt = new Date().toISOString();
+      const message = [
+        `${domain} wants you to sign in with your Ethereum account:`,
+        addr,
+        '',
+        'Sign in to SSO Hub.',
+        '',
+        `URI: ${window.location.origin}`,
+        'Version: 1',
+        `Chain ID: ${parseInt(chainId, 16)}`,
+        `Nonce: ${nonce}`,
+        `Issued At: ${issuedAt}`,
+      ].join('\n');
+      const sig = await (window as any).ethereum.request({ method: 'personal_sign', params: [message, addr] });
+      const { code } = await fetch('/login/wallet/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, signature: sig, wallet_address: addr, client_id: clientId || '', redirect_uri: redirectUri, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod }) }).then(r => r.json());
       window.location.href = clientId && redirectUri ? `${redirectUri}?code=${code}&state=${state}` : '/';
     } catch (err: any) {
       setError(err.message || '登录失败');
