@@ -1,7 +1,9 @@
 import {
   Controller, Get, Post, Query, Body, HttpCode, Headers,
-  UnauthorizedException, Res, Req,
+  UnauthorizedException, Res, Req, UseGuards,
 } from '@nestjs/common';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard';
+import { RateLimit } from '../common/guards/rate-limit.decorator';
 import { Request, Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -57,6 +59,8 @@ export class OAuthController {
 
   @Post('/token')
   @HttpCode(200)
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60, 20)
   async postToken(@Body() body: TokenDto) {
     try {
       if (body.grant_type === 'refresh_token') {

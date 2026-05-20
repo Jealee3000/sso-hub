@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { SsoSessionService } from './sso-session.service';
 import { WalletStrategy } from './strategies/wallet.strategy';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard';
 import { User } from '../entities/user.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
 import { AuditLog } from '../entities/audit-log.entity';
@@ -19,6 +20,7 @@ import { ConfigService } from '../config/config.service';
     SsoSessionService,
     WalletStrategy,
     AdminGuard,
+    RateLimitGuard,
     {
       provide: 'REDIS',
       useFactory: async (cfg: ConfigService) => {

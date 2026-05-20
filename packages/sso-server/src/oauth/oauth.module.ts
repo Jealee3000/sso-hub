@@ -8,6 +8,7 @@ import { User } from '../entities/user.entity';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { ConfigService } from '../config/config.service';
 import { AuthModule } from '../auth/auth.module';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard';
 import { createClient } from 'redis';
 
 @Module({
@@ -16,6 +17,7 @@ import { createClient } from 'redis';
   providers: [
     OAuthService,
     JwtService,
+    RateLimitGuard,
     {
       provide: 'REDIS',
       useFactory: async (cfg: ConfigService) => {

@@ -1,4 +1,6 @@
 import { Controller, Get, Post, Body, Query, Req, Res, Inject, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { RateLimitGuard } from '../common/guards/rate-limit.guard';
+import { RateLimit } from '../common/guards/rate-limit.decorator';
 import { Request, Response } from 'express';
 import { createClient } from 'redis';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -93,6 +95,8 @@ export class AuthController {
   }
 
   @Get('/login/github')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60, 10)
   loginGitHub(
     @Query('redirect_uri') redirectUri: string,
     @Query('state') state: string,
@@ -163,12 +167,16 @@ export class AuthController {
   }
 
   @Post('/login/wallet/nonce')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60, 10)
   async getWalletNonce(@Body('wallet_address') walletAddress: string) {
     const nonce = await this.wallet.generateNonce(walletAddress);
     return { nonce };
   }
 
   @Post('/login/wallet/verify')
+  @UseGuards(RateLimitGuard)
+  @RateLimit(60, 5)
   async loginWallet(
     @Body('nonce') nonce: string,
     @Body('signature') signature: string,
