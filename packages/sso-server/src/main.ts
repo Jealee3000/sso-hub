@@ -13,7 +13,9 @@ async function bootstrap() {
   // Traefik 反代后取真实客户端 IP
   (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
   app.enableCors({
-    origin: true,
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : ['http://localhost:3001', 'http://localhost:3002'],
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
