@@ -24,4 +24,8 @@ export class AuthorizeDto {
   @IsString()
   @IsOptional()
   code_challenge_method?: string;
+
+  @IsString()
+  @IsOptional()
+  prompt?: string;
 }

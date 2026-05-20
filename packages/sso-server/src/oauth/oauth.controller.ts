@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Query, Body, HttpCode, Headers,
-  UnauthorizedException, Res, Req, UseGuards,
+  UnauthorizedException, Res, Req, UseGuards, Logger,
 } from '@nestjs/common';
 import { RateLimitGuard } from '../common/guards/rate-limit.guard';
 import { RateLimit } from '../common/guards/rate-limit.decorator';
@@ -46,6 +46,14 @@ export class OAuthController {
       return res.send(renderConfirmPage(ssoUser, query, clientName));
     }
 
+    // prompt=none — silent auth, return error instead of login page
+    if (query.prompt === 'none') {
+      const redirectUrl = new URL(query.redirect_uri);
+      redirectUrl.searchParams.set('error', 'login_required');
+      redirectUrl.searchParams.set('state', query.state);
+      return res.redirect(redirectUrl.toString());
+    }
+
     const params = new URLSearchParams({
       client_id: query.client_id,
       redirect_uri: query.redirect_uri,
@@ -80,7 +88,7 @@ export class OAuthController {
         body.code_verifier,
       );
     } catch (err) {
-      console.error('Token exchange error:', err);
+      Logger.error('Token exchange failed', (err as Error).stack, 'OAuthController');
       throw err;
     }
   }
