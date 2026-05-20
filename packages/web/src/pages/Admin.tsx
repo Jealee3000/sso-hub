@@ -12,6 +12,9 @@ export default function Admin() {
   const [clients, setClients] = useState<Client[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditTotalPages, setAuditTotalPages] = useState(0);
+  const [auditTotal, setAuditTotal] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newUris, setNewUris] = useState('');
@@ -38,15 +41,19 @@ export default function Admin() {
     setUsers(await res.json());
   };
 
-  const fetchAudit = async () => {
-    const res = await fetch('/admin/audit-logs');
-    setAudit(await res.json());
+  const fetchAudit = async (p = 1) => {
+    const res = await fetch(`/admin/audit-logs?page=${p}&pageSize=20`);
+    const data = await res.json();
+    setAudit(data.items);
+    setAuditPage(data.page);
+    setAuditTotalPages(data.totalPages);
+    setAuditTotal(data.total);
   };
 
   useEffect(() => {
     if (tab === 'clients') fetchClients();
     else if (tab === 'users') fetchUsers();
-    else fetchAudit();
+    else { fetchAudit(1); setAuditPage(1); }
   }, [tab]);
 
   const createClient = async () => {
@@ -233,6 +240,19 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Audit Pagination */}
+      {tab === 'audit' && auditTotalPages > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            共 {auditTotal} 条记录，第 {auditPage}/{auditTotalPages} 页
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={styles.btnGhost} disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)}>上一页</button>
+            <button style={styles.btnGhost} disabled={auditPage >= auditTotalPages} onClick={() => fetchAudit(auditPage + 1)}>下一页</button>
+          </div>
+        </div>
       )}
 
       {/* Modal */}

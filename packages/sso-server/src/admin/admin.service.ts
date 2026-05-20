@@ -59,10 +59,20 @@ export class AdminService {
     await this.userRepo.delete(userId);
   }
 
-  async getAuditLogs(filter: { userId?: string; action?: string; limit?: number }) {
-    return this.auditRepo.find({
-      where: { ...(filter.userId && { userId: filter.userId }), ...(filter.action && { action: filter.action }) },
-      order: { createdAt: 'DESC' }, take: filter.limit || 100,
+  async getAuditLogs(filter: { userId?: string; action?: string; page?: number; pageSize?: number }) {
+    const page = Math.max(1, filter.page || 1);
+    const pageSize = Math.min(100, filter.pageSize || 20);
+
+    const [items, total] = await this.auditRepo.findAndCount({
+      where: {
+        ...(filter.userId && { userId: filter.userId }),
+        ...(filter.action && { action: filter.action }),
+      },
+      order: { createdAt: 'DESC' },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     });
+
+    return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 }

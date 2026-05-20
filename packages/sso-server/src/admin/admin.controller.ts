@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 
@@ -31,5 +31,10 @@ export class AdminController {
   disableUser(@Param('id') id: string) { return this.admin.disableUser(id); }
 
   @Get('audit-logs')
-  getAuditLogs(@Body() filter: any) { return this.admin.getAuditLogs(filter); }
+  getAuditLogs(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+    return this.admin.getAuditLogs({
+      page: page ? parseInt(page) : 1,
+      pageSize: pageSize ? parseInt(pageSize) : 20,
+    });
+  }
 }
