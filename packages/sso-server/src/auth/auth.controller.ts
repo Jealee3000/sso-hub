@@ -81,8 +81,8 @@ export class AuthController {
   </div>
   <div class="demo-section">
     <div class="divider"><span class="divider-line"></span><span class="divider-label">Demo 应用</span><span class="divider-line"></span></div>
-    <a class="btn btn-demo" href="${demoA}">体验 Demo A</a>
-    <a class="btn btn-demo" href="${demoB}">体验 Demo B</a>
+    <a class="btn btn-demo" href="${demoA}" target="_blank">体验 Demo A</a>
+    <a class="btn btn-demo" href="${demoB}" target="_blank">体验 Demo B</a>
   </div>
   <div class="actions">
     ${adminBtn}
