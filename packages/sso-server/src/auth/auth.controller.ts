@@ -63,7 +63,7 @@ export class AuthController {
   .btn{display:block;width:100%;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:14px;text-decoration:none;text-align:center;color:#fff}
   .btn-admin{background:#1e293b}
   .btn-logout{background:rgba(239,68,68,0.1);color:#ef4444}
-  .btn-demo{background:rgba(20,184,166,0.08);color:#14b8a6;border:1px solid rgba(20,184,166,0.2)}
+  .btn-demo{background:rgba(20,184,166,0.08);color:#14b8a6;border:1px solid rgba(20,184,166,0.2);margin-bottom:10px}
   .demo-section{margin-bottom:8px}
   .divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:#556478;font-size:12px}
   .divider-line{flex:1;border-top:1px solid #1e293b}
