@@ -45,7 +45,19 @@ export class AdminService {
   }
 
   async listUsers() {
-    return this.userRepo.find({ select: ['id', 'email', 'displayName', 'isAdmin', 'createdAt'] });
+    const users = await this.userRepo.find({ relations: ['identities'] });
+    return users.map(u => {
+      const firstId = u.identities?.[0];
+      return {
+        id: u.id,
+        email: u.email,
+        displayName: u.displayName,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+        provider: firstId?.provider || null,
+        providerUserId: firstId?.providerUserId || null,
+      };
+    });
   }
 
   async toggleAdmin(userId: string) {

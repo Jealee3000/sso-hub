@@ -99,7 +99,8 @@ export class AuthService {
     });
 
     if (!identity) {
-      const user = await this.userRepo.save(this.userRepo.create({}));
+      const shortAddr = `${normalizedAddress.slice(0, 6)}…${normalizedAddress.slice(-4)}`;
+      const user = await this.userRepo.save(this.userRepo.create({ displayName: shortAddr }));
       identity = await this.identityRepo.save(
         this.identityRepo.create({
           userId: user.id,
@@ -109,6 +110,10 @@ export class AuthService {
         }),
       );
       identity.user = user;
+    } else if (!identity.user.displayName) {
+      const shortAddr = `${normalizedAddress.slice(0, 6)}…${normalizedAddress.slice(-4)}`;
+      await this.userRepo.update(identity.user.id, { displayName: shortAddr });
+      identity.user.displayName = shortAddr;
     }
 
     await this.auditRepo.save(

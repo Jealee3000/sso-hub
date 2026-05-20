@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 interface Client { id: string; name: string; clientId: string; isActive: boolean; createdAt: string; }
-interface User { id: string; email: string | null; displayName: string | null; isAdmin: boolean; createdAt: string; }
+interface User { id: string; email: string | null; displayName: string | null; isAdmin: boolean; createdAt: string; provider: string | null; providerUserId: string | null; }
 interface AuditEntry { id: string; userId: string | null; action: string; ipAddress: string; createdAt: string; }
 
 type Tab = 'clients' | 'users' | 'audit';
@@ -116,14 +116,18 @@ export default function Admin() {
 
       {/* ── Users ── */}
       {tab === 'users' && (
-        <table><thead><tr><th>ID</th><th>邮箱</th><th>昵称</th><th>管理员</th><th>创建时间</th><th>操作</th></tr></thead>
+        <table><thead><tr><th>ID</th><th>邮箱</th><th>昵称</th><th>登录方式</th><th>钱包地址</th><th>管理员</th><th>创建时间</th><th>操作</th></tr></thead>
           <tbody>
-            {!users.length && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>暂无用户</td></tr>}
+            {!users.length && <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)' }}>暂无用户</td></tr>}
             {users.map(u => (
               <tr key={u.id}>
                 <td><code>{u.id.slice(0, 12)}…</code></td>
                 <td style={{ color: 'var(--text-primary)' }}>{u.email || '—'}</td>
                 <td>{u.displayName || '—'}</td>
+                <td>{u.provider === 'github' ? '⎔ GitHub' : u.provider === 'wallet' ? '⧗ Wallet' : '—'}</td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                  {u.provider === 'wallet' ? <code style={{ color: 'var(--accent)' }}>{u.providerUserId?.slice(0, 6)}…{u.providerUserId?.slice(-4)}</code> : '—'}
+                </td>
                 <td>{badge(u.isAdmin)}</td>
                 <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                 <td style={{ display: 'flex', gap: 8 }}>

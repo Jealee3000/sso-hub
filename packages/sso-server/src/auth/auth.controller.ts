@@ -44,7 +44,7 @@ export class AuthController {
 
       const user = await this.userRepo.findOne({ where: { id: ssoUser.userId } });
       const isAdmin = user?.isAdmin;
-      const adminBtn = isAdmin ? `<a class="btn btn-admin" href="/admin">进入管理后台</a>` : '';
+      const adminBtn = isAdmin ? `<a class="btn btn-admin" href="/admin" target="_blank">进入管理后台</a>` : '';
 
       const demoA = process.env.DEMO_APP_A_URL || 'http://localhost:3001';
       const demoB = process.env.DEMO_APP_B_URL || 'http://localhost:3002';
