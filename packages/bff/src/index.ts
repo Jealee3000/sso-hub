@@ -92,6 +92,14 @@ async function main() {
     reply.redirect(`${config.ssoExternalUrl}/logout?redirect=${encodeURIComponent(config.bffExternalUrl + '/')}`);
   });
 
+  const closeGracefully = async () => {
+    await app.close();
+    await redis.quit();
+    process.exit(0);
+  };
+  process.on('SIGTERM', closeGracefully);
+  process.on('SIGINT', closeGracefully);
+
   await app.listen({ port: config.port, host: '0.0.0.0' });
   console.log(`BFF running on :${config.port}`);
 }

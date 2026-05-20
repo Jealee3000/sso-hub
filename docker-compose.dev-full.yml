@@ -10,11 +10,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata_devfull:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "sso"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build:
@@ -39,6 +49,11 @@ services:
       - ./packages/sso-server/jwt-private.pem:/app/jwt-private.pem:ro
       - ./packages/sso-server/jwt-public.pem:/app/jwt-public.pem:ro
       - webdist:/app/public
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/.well-known/openid-configuration"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       web:
         condition: service_completed_successfully
@@ -56,6 +71,11 @@ services:
     env_file: config/bff-app-a.env
     volumes:
       - webdist:/app/public
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/me"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       web:
         condition: service_completed_successfully
@@ -73,6 +93,11 @@ services:
     env_file: config/bff-app-b.env
     volumes:
       - webdist:/app/public
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/me"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       web:
         condition: service_completed_successfully

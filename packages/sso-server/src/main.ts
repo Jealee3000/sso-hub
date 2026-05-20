@@ -19,6 +19,7 @@ async function bootstrap() {
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+  app.enableShutdownHooks();
   await app.listen(3000);
 }
 bootstrap();
