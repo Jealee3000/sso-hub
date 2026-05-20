@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   // Traefik 反代后取真实客户端 IP
-  app.set('trust proxy', true);
+  (app.getHttpAdapter().getInstance() as any).set('trust proxy', true);
   app.enableCors({
     origin: true,
     credentials: true,
