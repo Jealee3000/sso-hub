@@ -46,6 +46,9 @@ export class AuthController {
       const isAdmin = user?.isAdmin;
       const adminBtn = isAdmin ? `<a class="btn btn-admin" href="/admin">进入管理后台</a>` : '';
 
+      const demoA = process.env.DEMO_APP_A_URL || 'http://localhost:3001';
+      const demoB = process.env.DEMO_APP_B_URL || 'http://localhost:3002';
+
       return res.send(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SSO Hub</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -60,8 +63,11 @@ export class AuthController {
   .btn{display:block;width:100%;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:14px;text-decoration:none;text-align:center;color:#fff}
   .btn-admin{background:#1e293b}
   .btn-logout{background:rgba(239,68,68,0.1);color:#ef4444}
-  .divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:#556478;font-size:12px}
-  .divider::before,.divider::after{content:'';flex:1;border-top:1px solid #1e293b}
+  .btn-demo{background:rgba(20,184,166,0.08);color:#14b8a6;border:1px solid rgba(20,184,166,0.2)}
+  .demo-section{margin-bottom:8px}
+  .divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:#556478;font-size:12px}
+  .divider-line{flex:1;border-top:1px solid #1e293b}
+  .divider-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
 </style></head><body>
 <div class="card">
   ${avatar}
@@ -72,6 +78,11 @@ export class AuthController {
       <div class="name">${name}</div>
       ${ssoUser.email ? `<div class="email">${ssoUser.email}</div>` : ''}
     </div>
+  </div>
+  <div class="demo-section">
+    <div class="divider"><span class="divider-line"></span><span class="divider-label">Demo 应用</span><span class="divider-line"></span></div>
+    <a class="btn btn-demo" href="${demoA}">体验 Demo A</a>
+    <a class="btn btn-demo" href="${demoB}">体验 Demo B</a>
   </div>
   <div class="actions">
     ${adminBtn}
