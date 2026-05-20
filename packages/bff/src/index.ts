@@ -37,12 +37,16 @@ async function main() {
     return reply.sendFile('index.html');
   });
 
-  // SSO login entry — builds /authorize URL and redirects
+  // SSO login entry — builds /authorize URL with PKCE and redirects
   app.get('/login', async (req, reply) => {
     const crypto = require('crypto');
     const state = crypto.randomUUID();
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
     const session = (req as any).session;
     session.state = state;
+    session.codeVerifier = codeVerifier;
     await session.save();
 
     const params = new URLSearchParams({
@@ -51,6 +55,8 @@ async function main() {
       response_type: 'code',
       scope: 'openid profile',
       state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
     reply.redirect(`${config.ssoExternalUrl}/authorize?${params}`);
   });

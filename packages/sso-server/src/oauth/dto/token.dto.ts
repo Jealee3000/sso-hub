@@ -17,6 +17,10 @@ export class TokenDto {
   refresh_token?: string;
 
   @IsString()
+  @IsOptional()
+  code_verifier?: string;
+
+  @IsString()
   client_id!: string;
 
   @IsString()

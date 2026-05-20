@@ -54,6 +54,8 @@ export class OAuthController {
       state: query.state,
       app_name: clientName,
     });
+    if (query.code_challenge) params.set('code_challenge', query.code_challenge);
+    if (query.code_challenge_method) params.set('code_challenge_method', query.code_challenge_method);
     res.redirect(`/login?${params.toString()}`);
   }
 
@@ -75,6 +77,7 @@ export class OAuthController {
         body.client_id,
         body.client_secret,
         body.redirect_uri!,
+        body.code_verifier,
       );
     } catch (err) {
       console.error('Token exchange error:', err);
@@ -98,6 +101,8 @@ export class OAuthController {
         scope: query.scope || 'openid profile',
         state: query.state,
       });
+      if (query.code_challenge) params.set('code_challenge', query.code_challenge);
+      if (query.code_challenge_method) params.set('code_challenge_method', query.code_challenge_method);
       return res.redirect(`/login?${params}`);
     }
     // 用户确认 → 签发 auth_code
@@ -106,6 +111,8 @@ export class OAuthController {
       clientId: query.client_id,
       redirectUri: query.redirect_uri,
       scopes: (query.scope || 'openid profile').split(' '),
+      codeChallenge: query.code_challenge,
+      codeChallengeMethod: query.code_challenge_method,
     });
     const redirectUrl = new URL(query.redirect_uri);
     redirectUrl.searchParams.set('code', code);

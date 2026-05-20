@@ -25,6 +25,7 @@ export async function handleCallback(
         redirect_uri: callbackUrl,
         client_id: clientId,
         client_secret: clientSecret,
+        code_verifier: session.codeVerifier,
       }),
     });
 

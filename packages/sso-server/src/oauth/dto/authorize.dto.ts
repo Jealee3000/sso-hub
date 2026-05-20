@@ -16,4 +16,12 @@ export class AuthorizeDto {
 
   @IsString()
   state!: string;
+
+  @IsString()
+  @IsOptional()
+  code_challenge?: string;
+
+  @IsString()
+  @IsOptional()
+  code_challenge_method?: string;
 }

@@ -14,6 +14,8 @@ interface AuthCodeData {
   clientId: string;
   scopes: string[];
   redirectUri: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
 }
 
 @Injectable()
@@ -48,6 +50,7 @@ export class OAuthService {
     clientId: string,
     clientSecret: string,
     redirectUri: string,
+    codeVerifier?: string,
   ) {
     const raw = await this.redis.get(`auth_code:${code}`);
     if (!raw) throw new UnauthorizedException('invalid_grant');
@@ -55,6 +58,19 @@ export class OAuthService {
     const parsed: AuthCodeData = JSON.parse(raw);
     if (parsed.clientId !== clientId || parsed.redirectUri !== redirectUri) {
       throw new UnauthorizedException('invalid_grant');
+    }
+
+    // PKCE verification — if code_challenge was stored, verifier is required
+    if (parsed.codeChallenge) {
+      if (!codeVerifier) throw new UnauthorizedException('invalid_grant');
+      const crypto = require('crypto');
+      const challenge = crypto
+        .createHash('sha256')
+        .update(codeVerifier)
+        .digest('base64url');
+      if (challenge !== parsed.codeChallenge) {
+        throw new UnauthorizedException('invalid_grant');
+      }
     }
 
     const client = await this.clientRepo.findOne({ where: { clientId } });
