@@ -5,8 +5,10 @@ import fastifyStatic from '@fastify/static';
 import { RedisStore } from 'connect-redis';
 import { createClient } from 'redis';
 import { config } from './config';
-import { handleCallback } from './auth';
+import { handleCallback, getValidAccessToken } from './auth';
 import path from 'path';
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function main() {
   const app = Fastify({ logger: true });
@@ -20,7 +22,7 @@ async function main() {
     store: new RedisStore({ client: redis as any }),
     secret: config.sessionSecret,
     cookieName: config.cookieName,
-    cookie: { secure: config.cookieSecure, httpOnly: true, sameSite: 'lax' as const, maxAge: 24 * 60 * 60 * 1000 },
+    cookie: { secure: config.cookieSecure, httpOnly: true, sameSite: 'lax' as const, maxAge: SEVEN_DAYS_MS },
   });
 
   await app.register(fastifyStatic, {
@@ -58,12 +60,22 @@ async function main() {
     await handleCallback(req, reply, config.ssoUrl, callbackUrl, config.clientId, config.clientSecret);
   });
 
-  // API: get current user info (no redirect, just return status)
+  // API: get current user — uses access token with auto-refresh
   app.get('/api/me', async (req, reply) => {
     const session = (req as any).session;
     if (!session?.userId) {
       return { authenticated: false };
     }
+
+    // 获取有效 access token，过期自动续
+    const accessToken = await getValidAccessToken(
+      config.ssoUrl, config.clientId, config.clientSecret, session,
+    );
+    if (!accessToken) {
+      await session.destroy();
+      return { authenticated: false, reason: 'token_expired' };
+    }
+
     return { authenticated: true, userId: session.userId, name: session.userName, avatar: session.userAvatar };
   });
 
