@@ -20,8 +20,12 @@ export class WalletStrategy {
     private redis: ReturnType<typeof createClient>,
     ssoBaseUrl: string,
   ) {
-    // 从 SSO_BASE_URL 提取域名
-    this.domain = new URL(ssoBaseUrl).hostname;
+    // 从 SSO_BASE_URL 提取域名，解析失败时回退
+    try {
+      this.domain = new URL(ssoBaseUrl).hostname;
+    } catch {
+      this.domain = 'localhost';
+    }
   }
 
   async generateNonce(walletAddress: string): Promise<string> {
