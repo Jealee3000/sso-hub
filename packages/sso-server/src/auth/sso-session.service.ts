@@ -24,14 +24,15 @@ export class SsoSessionService {
 
   setSession(res: Response, user: SsoSession) {
     const sid = uuid();
-    this.redis.setEx(`sso_session:${sid}`, 24 * 3600, JSON.stringify(user));
+    const ttl = 7 * 24 * 3600;
+    this.redis.setEx(`sso_session:${sid}`, ttl, JSON.stringify(user));
     this.redis.sAdd(`user_sessions:${user.userId}`, sid);
-    this.redis.expire(`user_sessions:${user.userId}`, 24 * 3600);
+    this.redis.expire(`user_sessions:${user.userId}`, ttl);
     res.cookie('sso_sid', sid, {
       httpOnly: true,
       secure: this.cookieSecure,
       sameSite: this.cookieSecure ? 'strict' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: ttl * 1000,
       path: '/',
     });
   }
